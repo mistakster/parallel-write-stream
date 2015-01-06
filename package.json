@@ -13,7 +13,14 @@
     "write",
     "parallel"
   ],
-  "author": "Vladimir Kuznetsov <mistakster@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mistakster/parallel-write-stream"
+  },
+  "author": {
+    "name": "Vladimir Kuznetsov",
+    "email": "mistakster@gmail.com"
+  },
   "license": "MIT",
   "dependencies": {
     "async": "^0.9.0",
