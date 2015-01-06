@@ -3,6 +3,7 @@ var util = require('util');
 var ParallelWriteStream = require('../index');
 var Producer = require('./helpers/producer');
 var Consumer = require('./helpers/consumer');
+var eventLogger = require('./helpers/event-logger');
 
 
 describe('Parallel write stream', function () {
@@ -121,7 +122,7 @@ describe('Parallel write stream', function () {
 		producer.pipe(testStream).pipe(consumer);
 	});
 
-	it('should handle errors well', function (done) {
+	it('should handle internal errors well', function (done) {
 
 		var documentsCount = 0;
 
@@ -165,6 +166,51 @@ describe('Parallel write stream', function () {
 			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
 			21, 22, 23, 24, 25
 		]);
+
+		producer.pipe(testStream);
+
+	});
+
+
+	it('should handle source stream errors well', function (done) {
+
+		var documentsCount = 0;
+
+		var TestStream = function () {
+			ParallelWriteStream.call(this, {
+				concurrency: 1
+			});
+		};
+		util.inherits(TestStream, ParallelWriteStream);
+		TestStream.prototype._save = function (doc, callback) {
+			process.nextTick(function () {
+				documentsCount += 1;
+				if (doc >= 15) {
+					callback(new Error('document #' + doc));
+				} else {
+					callback();
+				}
+			});
+		};
+
+		var testStream = new TestStream();
+
+		testStream.on('end', function () {
+			documentsCount.should.be.equal(2);
+			process.nextTick(function () {
+				done();
+			});
+		});
+
+		var producer = new Producer([
+			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+			21, 22, 23, 24, 25
+		], 3);
+
+		producer.on('error', function () {
+			// suppress error
+		});
 
 		producer.pipe(testStream);
 
