@@ -11,7 +11,8 @@
     "writable",
     "transform",
     "write",
-    "parallel"
+    "parallel",
+    "concurrency"
   ],
   "repository": {
     "type": "git",
