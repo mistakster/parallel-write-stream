@@ -15,7 +15,7 @@ $ npm install --save parallel-write-stream
 
 To implement parallel write stream, follow the pattern:
 
-```
+```js
 var util = require('util');
 var ParallelWriteStream = require('parallel-write-stream');
 
