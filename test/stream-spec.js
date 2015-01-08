@@ -3,6 +3,7 @@ var util = require('util');
 var ParallelWriteStream = require('../index');
 var Producer = require('./helpers/producer');
 var Consumer = require('./helpers/consumer');
+var DataLogger = require('./helpers/data-logger');
 var eventLogger = require('./helpers/event-logger');
 
 
@@ -82,8 +83,49 @@ describe('Parallel write stream', function () {
 			21, 22, 23, 24, 25
 		]);
 
-		//eventLogger(producer, 'src');
-		//eventLogger(testStream, 'dst');
+		producer.pipe(testStream);
+
+	});
+
+	it('should do jobs in parallel with bigger buffer', function (done) {
+
+		var storage = {};
+		var documentsCount = 0;
+		var concurrentJobsCount = [];
+
+		var TestStream = function () {
+			ParallelWriteStream.call(this, {
+				concurrency: 10,
+				highWaterMark: 15
+			});
+		};
+		util.inherits(TestStream, ParallelWriteStream);
+		TestStream.prototype._save = function (doc, callback) {
+			storage[doc] = true;
+			setTimeout(function () {
+				documentsCount += 1;
+				delete storage[doc];
+				callback();
+			}, 10 + 100 * Math.random());
+			var keysLength = Object.keys(storage).length;
+			keysLength.should.not.be.greaterThan(10);
+			keysLength.should.be.greaterThan(0);
+			concurrentJobsCount.push(keysLength);
+		};
+
+		var testStream = new TestStream();
+
+		testStream.on('end', function () {
+			documentsCount.should.be.equal(25);
+			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,2,3,4,5]);
+			done();
+		});
+
+		var producer = new Producer([
+			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+			21, 22, 23, 24, 25
+		]);
 
 		producer.pipe(testStream);
 
