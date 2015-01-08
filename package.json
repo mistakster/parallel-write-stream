@@ -24,8 +24,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async": "^0.9.0",
-    "readable-stream": "^1.0.33"
+    "async": "0.9.x",
+    "readable-stream": "1.0.x"
   },
   "devDependencies": {
     "mocha": "^2.1.0",
