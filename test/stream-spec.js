@@ -57,11 +57,11 @@ describe('Parallel write stream', function () {
 		util.inherits(TestStream, ParallelWriteStream);
 		TestStream.prototype._save = function (doc, callback) {
 			storage[doc] = true;
-			process.nextTick(function () {
+			setTimeout(function () {
 				documentsCount += 1;
 				delete storage[doc];
 				callback();
-			});
+			}, 10 + 100 * Math.random());
 			var keysLength = Object.keys(storage).length;
 			keysLength.should.not.be.greaterThan(10);
 			keysLength.should.be.greaterThan(0);
@@ -81,6 +81,9 @@ describe('Parallel write stream', function () {
 			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
 			21, 22, 23, 24, 25
 		]);
+
+		//eventLogger(producer, 'src');
+		//eventLogger(testStream, 'dst');
 
 		producer.pipe(testStream);
 
