@@ -27,6 +27,7 @@ util.inherits(Updater, ParallelWriteStream);
 Updater.prototype._save = function (doc, callback) {
 	// implement procedure to save doc here
 	// invoke callback then save will be done
+	callback();
 };
 ```
 
