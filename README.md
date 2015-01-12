@@ -20,15 +20,23 @@ var util = require('util');
 var ParallelWriteStream = require('parallel-write-stream');
 
 var Updater = function () {
-	ParallelWriteStream.call(this);
+  ParallelWriteStream.call(this);
 };
 util.inherits(Updater, ParallelWriteStream);
 
 Updater.prototype._save = function (doc, callback) {
-	// implement procedure to save doc here
-	// invoke callback then save will be done
-	callback();
+  // implement procedure to save doc here
+  // invoke callback then save will be done
+  callback();
 };
+```
+
+The size of the batch is specified in the options passed to constructor.
+
+```js
+var update = new Updater({
+  concurrency: 5
+});
 ```
 
 ## API
