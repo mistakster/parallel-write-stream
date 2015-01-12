@@ -1,7 +1,7 @@
 {
   "name": "parallel-write-stream",
   "version": "1.0.0",
-  "description": "Parallel Write Stream\r =====================",
+  "description": "Parallel Write Stream is an abstract class which helps create kind of passthrough stream. Regardless of how data will flow into your writable stream, the batch of tasks will be processed in parallel.",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha -R spec"
