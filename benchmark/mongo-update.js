@@ -5,7 +5,7 @@ var async = require('async');
 var mongoose = require('mongoose');
 
 var TEST_COLLECTION = 'test';
-var ITEMS_COUNT = 5e5;
+var ITEMS_COUNT = 2e5;
 
 
 function generateRandomString(len) {
@@ -23,7 +23,7 @@ function createRandomDocument() {
 	var i, j, key, value, doc = {_v: 0};
 	for (i = 0; i < 10; i++) {
 		key = generateRandomString(10);
-		value = generateRandomString(50);
+		value = Math.random();
 		doc[key] = value;
 	}
 	return doc;
@@ -44,8 +44,7 @@ UpdateStream.prototype._save = function (doc, callback) {
 	Object.keys(doc)
 		.filter(function (key) { return key != '_id' && key != '_v'; })
 		.forEach(function (key) {
-			var newKey = generateRandomString(10);
-			updatedDoc[newKey] = doc[key];
+			updatedDoc[key] = Math.sin(doc[key]);
 		});
 	this._collection.update(
 		{
