@@ -1,6 +1,8 @@
 parallel-write-stream
 =====================
 
+[![Build Status](https://travis-ci.org/mistakster/parallel-write-stream.svg?branch=master)](https://travis-ci.org/mistakster/parallel-write-stream)
+
 Parallel Write Stream is an abstract class which helps create kind of passthrough stream.
 Your have to implement `_save` method and operate with the object streams only.
 
