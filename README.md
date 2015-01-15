@@ -51,6 +51,29 @@ The document you want to store, update or process in other way.
 
 A function which is called when the processing is finished. First argument is the error.
 
+## Benchmark
+
+As an example how parallel writes can speed up some tasks, I created benchmark which update items in MongoDB.
+
+![Update 200 000 items in MongoDB](https://raw.githubusercontent.com/mistakster/parallel-write-stream/master/benchmark/mongo-update-chart.png)
+
+| Concurrency level | Time in seconds |
+|------------------:|----------------:|
+|                 1 |            57.0 |
+|                 3 |            47.0 |
+|                10 |            44.0 |
+|                30 |            42.2 |
+|               100 |            41.7 |
+
+The task was pretty simple. The benchmark test filled DB with required number of documents.
+Then it replaced content of each document with new content.
+
+To run benchmark in your local environment use following command:
+
+```bash
+$ node benchmark/mongo-update.js
+```
+
 ## License
 
 MIT © 2015 [Vladimir Kuznetsov](http://noteskeeper.ru/about/)
