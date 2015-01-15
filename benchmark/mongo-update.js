@@ -5,7 +5,7 @@ var async = require('async');
 var mongoose = require('mongoose');
 
 var TEST_COLLECTION = 'test';
-var ITEMS_COUNT = 3e5;
+var ITEMS_COUNT = 5e5;
 
 
 function generateRandomString(len) {
@@ -60,13 +60,57 @@ UpdateStream.prototype._save = function (doc, callback) {
 };
 
 
+function task(concurrency, done) {
+	var collection = new mongoose.Collection(TEST_COLLECTION, mongoose.connection);
+	var timer = process.hrtime();
+	var diff;
+
+	async.series([
+		function (next) {
+			collection.find({}, function (err, cursor) {
+				var updater = new UpdateStream(collection, {concurrency: concurrency});
+				updater.once('end', function () {
+					updater.removeListener('error', next);
+					next();
+				});
+				updater.once('error', function (err) {
+					update.removeListener('end', next);
+					next(err);
+				});
+				cursor.stream().pipe(updater);
+			});
+		},
+		function (next) {
+			diff = process.hrtime(timer);
+			next();
+		},
+		function (next) {
+			var i = 0;
+			collection.find({}, function (err, cursor) {
+				var stream = cursor.stream();
+				stream.on('data', function (doc) {
+					doc.should.have.properties('_id', '_v');
+					i++;
+				});
+				stream.on('end', function () {
+					i.should.be.equal(ITEMS_COUNT);
+					next();
+				});
+				stream.resume();
+			});
+		}
+	], function (err) {
+		if (err) {
+			done(err);
+		} else {
+			done(null, diff[0] + diff[1] * 1e-9);
+		}
+	});
+}
 
 
-describe('Benchmark', function () {
-
-	this.timeout(150000);
-
-	before(function (done) {
+async.series([
+	function (done) {
 		mongoose.connect('mongodb://localhost/parallel-write-stream', function (err) {
 			if (err) throw err;
 
@@ -104,105 +148,45 @@ describe('Benchmark', function () {
 			], done);
 
 		});
-	});
+	},
 
-	after(function (done) {
+	function (done) {
+
+		async.mapSeries([1,3,10,30,100],
+			function (n, nextTest) {
+				util.log(util.format('Concurrency = %d', n));
+				async.mapSeries([1,2,3,4,5],
+					function (attempt, nextAttempt) {
+						task(n, function (err, diff) {
+							if (!err) {
+								util.log(util.format('Benchmark took %d seconds', diff));
+							}
+							nextAttempt(err, diff);
+						});
+					},
+					function (err, results) {
+						var sum = results.reduce(function (memo, v) { return memo + v; }, 0);
+						nextTest(err, {n: n, time: sum / results.length});
+					}
+				);
+			},
+			function (err, results) {
+				util.log('=====');
+				results.forEach(function (r) {
+					util.log(util.format('Concurrency: %d, Average time: %d', r.n, r.time));
+				});
+				done();
+			}
+		);
+
+	},
+
+	function (done) {
 		var collection = new mongoose.Collection(TEST_COLLECTION, mongoose.connection);
 		collection.drop(function (err) {
 			if (err) throw err;
 			mongoose.disconnect(done);
 		});
-	});
-
-
-
-	function task(concurrency, done) {
-		var collection = new mongoose.Collection(TEST_COLLECTION, mongoose.connection);
-		var timer = process.hrtime();
-
-		async.series([
-			function (next) {
-				collection.find({}, function (err, cursor) {
-					var updater = new UpdateStream(collection, {concurrency: concurrency});
-					updater.once('end', function () {
-						updater.removeListener('error', next);
-						next();
-					});
-					updater.once('error', function (err) {
-						update.removeListener('end', next);
-						next(err);
-					});
-					cursor.stream().pipe(updater);
-				});
-			},
-			function (next) {
-				var diff = process.hrtime(timer);
-				util.log(util.format('benchmark took %d seconds', diff[0] + diff[1] * 10e-9));
-				next();
-			},
-			function (next) {
-				var i = 0;
-				collection.find({}, function (err, cursor) {
-					var stream = cursor.stream();
-					stream.on('data', function (doc) {
-						doc.should.have.properties('_id', '_v');
-						i++;
-					});
-					stream.on('end', function () {
-						i.should.be.equal(ITEMS_COUNT);
-						next();
-					});
-					stream.resume();
-				});
-			}
-		], done);
 	}
 
-
-	it('1.1', function (done) {
-		task(1, done);
-	});
-	it('1.2', function (done) {
-		task(1, done);
-	});
-	it('1.3', function (done) {
-		task(1, done);
-	});
-	it('1.4', function (done) {
-		task(1, done);
-	});
-	it('1.5', function (done) {
-		task(1, done);
-	});
-	it('10.1', function (done) {
-		task(10, done);
-	});
-	it('10.2', function (done) {
-		task(10, done);
-	});
-	it('10.3', function (done) {
-		task(10, done);
-	});
-	it('10.4', function (done) {
-		task(10, done);
-	});
-	it('10.5', function (done) {
-		task(10, done);
-	});
-	it('100.1', function (done) {
-		task(100, done);
-	});
-	it('100.2', function (done) {
-		task(100, done);
-	});
-	it('100.3', function (done) {
-		task(100, done);
-	});
-	it('100.4', function (done) {
-		task(100, done);
-	});
-	it('100.5', function (done) {
-		task(100, done);
-	});
-
-});
+]);
