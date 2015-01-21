@@ -73,7 +73,7 @@ describe('Parallel write stream', function () {
 
 		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(25);
-			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,1,1,1,1]);
+			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,2,1,1,1]);
 			done();
 		});
 
@@ -91,7 +91,6 @@ describe('Parallel write stream', function () {
 
 		var storage = {};
 		var documentsCount = 0;
-		var concurrentJobsCount = [];
 
 		var TestStream = function () {
 			ParallelWriteStream.call(this, {
@@ -110,14 +109,12 @@ describe('Parallel write stream', function () {
 			var keysLength = Object.keys(storage).length;
 			keysLength.should.not.be.greaterThan(10);
 			keysLength.should.be.greaterThan(0);
-			concurrentJobsCount.push(keysLength);
 		};
 
 		var testStream = new TestStream();
 
 		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(25);
-			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,1,1,1,1]);
 			done();
 		});
 
