@@ -18,7 +18,7 @@ describe('Parallel write stream', function () {
 			ParallelWriteStream.call(this);
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
+		TestStream.prototype._task = function (doc, callback) {
 			process.nextTick(function () {
 				documentsCount += 1;
 				checkSum = checkSum * 2 + doc;
@@ -28,7 +28,7 @@ describe('Parallel write stream', function () {
 
 		var testStream = new TestStream();
 
-		testStream.on('end', function () {
+		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(25);
 			checkSum.should.be.equal(67108837);
 			done();
@@ -56,7 +56,7 @@ describe('Parallel write stream', function () {
 			});
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
+		TestStream.prototype._task = function (doc, callback) {
 			storage[doc] = true;
 			setTimeout(function () {
 				documentsCount += 1;
@@ -71,9 +71,9 @@ describe('Parallel write stream', function () {
 
 		var testStream = new TestStream();
 
-		testStream.on('end', function () {
+		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(25);
-			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,2,3,4,5]);
+			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,1,1,1,1]);
 			done();
 		});
 
@@ -100,7 +100,7 @@ describe('Parallel write stream', function () {
 			});
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
+		TestStream.prototype._task = function (doc, callback) {
 			storage[doc] = true;
 			setTimeout(function () {
 				documentsCount += 1;
@@ -115,9 +115,9 @@ describe('Parallel write stream', function () {
 
 		var testStream = new TestStream();
 
-		testStream.on('end', function () {
+		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(25);
-			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,2,3,4,5]);
+			concurrentJobsCount.should.be.eql([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10,1,1,1,1,1]);
 			done();
 		});
 
@@ -131,40 +131,21 @@ describe('Parallel write stream', function () {
 
 	});
 
-	it('should pass through data', function (done) {
-
-		var documentsCount = 0;
+	it('should not pass through data', function () {
 
 		var TestStream = function () {
-			ParallelWriteStream.call(this, {
-				concurrency: 10
-			});
+			ParallelWriteStream.call(this);
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
-			process.nextTick(function () {
-				documentsCount += 1;
-				callback();
-			});
-		};
 
 		var testStream = new TestStream();
-
-		testStream.on('end', function () {
-			documentsCount.should.be.equal(25);
-			consumer.getStorage().should.be.eql([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]);
-			done();
-		});
-
-		var producer = new Producer([
-			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-			21, 22, 23, 24, 25
-		]);
-
+		var producer = new Producer([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 		var consumer = new Consumer();
 
-		producer.pipe(testStream).pipe(consumer);
+		(function () {
+			producer.pipe(testStream).pipe(consumer);
+		}).should.throw('Cannot pipe. Not readable.');
+
 	});
 
 	it('should handle internal errors well', function (done) {
@@ -177,7 +158,7 @@ describe('Parallel write stream', function () {
 			});
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
+		TestStream.prototype._task = function (doc, callback) {
 			process.nextTick(function () {
 				documentsCount += 1;
 				if (doc >= 5) {
@@ -227,7 +208,7 @@ describe('Parallel write stream', function () {
 			});
 		};
 		util.inherits(TestStream, ParallelWriteStream);
-		TestStream.prototype._save = function (doc, callback) {
+		TestStream.prototype._task = function (doc, callback) {
 			process.nextTick(function () {
 				documentsCount += 1;
 				if (doc >= 15) {
@@ -240,18 +221,14 @@ describe('Parallel write stream', function () {
 
 		var testStream = new TestStream();
 
-		testStream.on('end', function () {
+		testStream.on('unpipe', function () {
 			documentsCount.should.be.equal(2);
 			process.nextTick(function () {
 				done();
 			});
 		});
 
-		var producer = new Producer([
-			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-			11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-			21, 22, 23, 24, 25
-		], 3);
+		var producer = new Producer([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3);
 
 		producer.on('error', function () {
 			// suppress error
